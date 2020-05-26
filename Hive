@@ -1,0 +1,105 @@
+Apache Hive
+
+The Apache Hive data warehouse software facilitates reading, writing, and managing large datasets residing in distributed storage and queried using SQL syntax. Built on top of Apache Hadoop, Hive provides the following features:
+
+    Tools to enable easy access to data via SQL, thus enabling data warehousing tasks such as extract/transform/load (ETL), reporting, and data analysis.
+    A mechanism to impose structure on a variety of data formats
+    Access to files stored either directly in Apache HDFS or in other data storage systems such as Apache HBase 
+    Query execution via Apache Tez™, Apache Spark, or MapReduce
+    Procedural language with HPL-SQL
+    Sub-second query retrieval via Hive LLAP, Apache YARN and Apache Slider.
+
+Hive's SQL can also be extended with user code via user defined functions (UDFs), user defined aggregates (UDAFs), and user defined table functions (UDTFs).
+
+There is not a single "Hive format" in which data must be stored. Hive comes with built in connectors for comma and tab-separated values (CSV/TSV) text files, Apache Parquet™, Apache ORC™, and other formats. Users can extend Hive with connectors for other formats. Please see File Formats and Hive SerDe in the Developer Guide for details.
+
+Hive is not designed for online transaction processing (OLTP) workloads. It is best used for traditional data warehousing tasks.
+
+Hive is designed to maximize scalability (scale out with more machines added dynamically to the Hadoop cluster), performance, extensibility, fault-tolerance, and loose-coupling with its input formats.
+
+Components of Hive include HCatalog and WebHCat.
+
+    HCatalog is a table and storage management layer for Hadoop that enables users with different data processing tools — including Pig and MapReduce — to more easily read and write data on the grid.
+    WebHCat provides a service that you can use to run Hadoop MapReduce (or YARN), Pig, Hive jobs. You can also perform Hive metadata operations using an HTTP (REST style) interface.
+
+No alt text provided for this image
+
+As show in the above picture Hive was developed at Facebook in order to reduce the programming part(MapReduce) in 2006 later made it as open source.
+No alt text provided for this image
+
+Ways to access Hive :
+
+1 . CLI
+
+2. Hive Web
+
+UI 3. Server
+
+There are two types of tables in Hive :
+
+Managed and External
+No alt text provided for this image
+
+Syntax :
+
+Managed Table : create table orders2(oid int,odate string,pid int) row format delimited . fields terminated by ',' location '/user/jagadeeshp/orders2/';
+
+External Table : create external table orders3(oid int,odate string,pid int) row format . delimited fields terminated by ',' location '/user/jagadeeshp/orders3/';
+
+load data 'orders/' into table orders2; /* the data in hdfs will be deleted at origin for load*/
+
+Above table will get stored in give location (by default apps/hive/warehouse/db/) the metadata(schema, data type details) stored in metastore, data inside table is stored as file in HDFS.
+No alt text provided for this image
+Partitioning & Bucketing :
+
+Partitioning is the optimization technique in Hive which improves the performance significantly
+No alt text provided for this image
+
+there are two types of partitions:
+
+1. Static Partition
+
+2. Dynamic Partition
+
+
+No alt text provided for this image
+
+
+
+Syntax : create table orders4(oid int,odate string,pid int) partitioned by(status string)
+
+alter table orders4 add partition (status = 'COMPLETE')
+
+insert into orders4 partition(status = 'COMPLETE') select * from orders where status like 'COMPLETE';
+
+
+No alt text provided for this image
+
+Syntax : create table orders5(oid int,odate string,pid int) partitioned by(status string)
+
+set hive.exec.dynamic.partition.mode =nonstrict
+
+insert into orders5 partition(status) select * from orders;
+
+
+No alt text provided for this image
+
+Sub directories with number of partition values will be created in our case 9 partitions. Under each sub directory files will be stored with data of that particular status. This will increase the efficiency of query. As the mapper job search inside particular sub directory if , that column is mentioned in query.
+
+a) Hive Partitioning Advantages 1.Partitioning in Hive distributes execution load horizontally. 2.In partition faster execution of queries with the low volume of data takes place. For example, search population from Vatican City returns very fast instead of searching entire world population.
+
+b) Hive Partitioning Disadvantages 1.There is the possibility of too many small partition creations- too many directories. 2.Partition is effective for low volume data. But there some queries like group by on high volume of data take a long time to execute. For example, grouping population of China will take a long time as compared to a grouping of the population in Vatican City. 3.There is no need for searching entire table column for a single record.
+No alt text provided for this image
+Bucketing :
+
+This concept is based on hashing function on the bucketed column. Along with mod (by the total number of buckets). i. Where the hash_function depends on the type of the bucketing column. ii. However, the Records with the same bucketed column will always be stored in the same bucket. iii. Moreover, to divide the table into buckets we use CLUSTERED BY clause. iv. Generally, in the table directory, each bucket is just a file, and Bucket numbering is 1-based. v. Along with Partitioning on Hive tables bucketing can be done and even without partitioning. vi. Moreover, Bucketed tables will create almost equally distributed data file parts
+No alt text provided for this image
+
+The number of files inside the partition sub directory will be same number we mention during schema.
+
+create table orders6(oid int,odate string,pid int) partitioned by(status string) CLUSTERED by (odate) sorted by (odate) into 10 buckets STORED AS ORC location '/user/jagadeeshp/orders6/';
+
+insert into orders6 partition(status) select * from orders;
+Advantages of Bucketing in Hive
+
+i. On comparing with non-bucketed tables, Bucketed tables offer the efficient sampling. ii. Map-side joins will be faster on bucketed tables than non-bucketed tables, as the data files are equal sized parts. iii. Here also bucketed tables offer faster query responses than non-bucketed tables as compared to Similar to partitioning. iv. This concept offers the flexibility to keep the records in each bucket to be sorted by one or more columns. v. Since the join of each bucket becomes an efficient merge-sort, this makes map-side joins even more efficient.
